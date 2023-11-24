@@ -85,6 +85,20 @@ async function run() {
             res.send(result);
         });
 
+        // GET USER DATA 
+        app.get("/userData/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = {
+                email: email,
+            };
+            const result = await usersCollection.findOne(query);
+            // console.log(result);
+            res.send(result);
+        });
+
+
+        // =====================STRIPE PAYMENT RELATED ROUTES =========================
+
         // STRIPE PAYMENT INTENT 
         app.post("/create-payment-intent", async (req, res) => {
             const { price } = req.body;
