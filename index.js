@@ -41,6 +41,7 @@ async function run() {
 
         // DATABASE COLLECTIONS 
         let usersCollection = client.db("SovereignAssets").collection("users");
+        let assetsCollection = client.db("SovereignAssets").collection("assets");
 
         // POST ADMIN DATA TO USER COLLECTION 
         app.post("/adminRegister", async (req, res) => {
@@ -95,6 +96,14 @@ async function run() {
             // console.log(result);
             res.send(result);
         });
+
+        // ADD ASSETS AS AN ADMIN 
+        app.post("/addAsset", async (req, res) => {
+            const assets = req.body;
+            const result = await assetsCollection.insertOne(assets);
+            // console.log(result);
+            res.send(result);
+          });
 
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
