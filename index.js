@@ -28,6 +28,33 @@ async function run() {
         // await client.connect();
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
+
+
+        // DATABASE COLLECTIONS 
+        let usersCollection = client.db("SovereignAssets").collection("users");
+
+        // POST ADMIN DATA TO USER COLLECTION 
+        app.post("/adminRegister", async (req, res) => {
+            const user = req.body;
+            //   console.log(user);
+            const result = await usersCollection.insertOne(user);
+            // console.log(result);
+            res.send(result);
+          });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
