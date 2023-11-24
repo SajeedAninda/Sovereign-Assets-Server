@@ -103,7 +103,53 @@ async function run() {
             const result = await assetsCollection.insertOne(assets);
             // console.log(result);
             res.send(result);
-          });
+        });
+
+        //   GET ADMIN SPECIFIC ASSET LIST
+        app.get("/assetList/:email", async (req, res) => {
+            const email = req.params.email;
+            const productType = req.query.productType;
+            const sort = req.query.sort;
+            const status = req.query.status;
+            let productName = req.query.productName;
+
+            const query = {
+                assetPostedBy: email,
+            };
+
+            // Applying filter based on productType
+            if (productType) {
+                query.productType = productType;
+            }
+
+            // Applying filter based on status
+            if (status) {
+                query.status = status;
+            }
+
+            // SORTING
+            const sortOption = {};
+            if (sort) {
+                sortOption.productQuantity = sort === 'asc' ? 1 : -1;
+            }
+            // SEARCHING
+            if (productName) {
+                query.productName = { $regex: new RegExp(req.query.productName, 'i') };
+            }
+
+            try {
+                const results = await assetsCollection.find(query).sort(sortOption).toArray();
+                if (results.length > 0) {
+                    res.send(results);
+                } else {
+                    res.status(404).send("No matching assets found");
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
+
 
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
