@@ -154,12 +154,42 @@ async function run() {
         app.delete("/assetList/:id", async (req, res) => {
             const id = req.params.id;
             const query = {
-              _id: new ObjectId(id),
+                _id: new ObjectId(id),
             };
             const result = await assetsCollection.deleteOne(query);
             res.send(result);
-          });
+        });
 
+        //   GET ASSET LIST TO UPDATE AS AN ADMIN
+        app.get("/updateAsset/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = {
+                _id: new ObjectId(id),
+            };
+            const result = await assetsCollection.findOne(query);
+            res.send(result);
+        });
+
+        //UPDATE ASSET LIST AS AN ADMIN 
+        app.patch("/updateAsset/:id", async (req, res) => {
+            const id = req.params.id;
+            const data = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatedList = {
+                $set: {
+                    productName: data.productName,
+                    productType: data.productType,
+                    productQuantity: data.productQuantity
+                },
+            };
+            const result = await assetsCollection.updateOne(
+                filter,
+                updatedList,
+                options
+            );
+            res.send(result);
+        });
 
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
