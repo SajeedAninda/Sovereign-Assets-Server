@@ -201,6 +201,57 @@ async function run() {
             res.send({ productCount: productCount });
         });
 
+        // GET AVAILABLE EMPLOYEES DATA TO ADD TO TEAM AS AN ADMIN 
+        app.get('/availableEmployees', async (req, res) => {
+            const availableEmployees = await usersCollection.find({ companyName: "null" }).toArray();
+            res.json(availableEmployees);
+        });
+
+
+        // ADD EMPLOYEE TO TEAM BY ADMIN 
+        app.patch('/addToTeam/:id', async (req, res) => {
+            const userId = req.params.id;
+            const currentUserEmail = req.body.currentUserEmail;
+
+            const userToUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+            if (!userToUpdate) {
+                return res.status(404).send("User to update not found");
+            }
+
+            const currentUser = await usersCollection.findOne({ email: currentUserEmail });
+
+            if (!currentUser) {
+                return res.status(404).send("Current User Not Found");
+            }
+
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(userId) },
+                {
+                    $set: {
+                        companyName: currentUser.companyName,
+                        companyLogo: currentUser.companyLogo,
+                    },
+                }
+            );
+
+            const decrementResult = await usersCollection.updateOne(
+                { email: currentUserEmail },
+                {
+                    $inc: { availableEmployees: -1 },
+                }
+            );
+            res.send(result);
+        });
+
+
+
+
+
+
+
+
+
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
 
