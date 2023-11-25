@@ -317,7 +317,23 @@ async function run() {
             res.send(result);
         });
 
-
+        // GET REQUESTED ASSETS DATA AS AN ADMIN 
+        app.get('/allRequests/:companyName', async (req, res) => {
+            const companyName = req.params.companyName;
+            const { requestorName } = req.query;
+        
+            const filter = {
+                assetCompany: companyName,
+            };
+        
+            if (requestorName) {
+                const searchRegex = new RegExp(requestorName, 'i');
+                filter.requestorName = searchRegex;
+            }
+            const result = await requestCollection.find(filter).toArray();
+        
+            res.send(result);
+        });
 
 
 
