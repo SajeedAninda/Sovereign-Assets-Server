@@ -259,6 +259,23 @@ async function run() {
             }
         });
 
+        // REMOVE MEMBER FROM TEAM AS AN ADMIN 
+        app.patch('/removeFromTeam/:id', async (req, res) => {
+            const userId = req.params.id;
+            try {
+                const result = await usersCollection.updateOne(
+                    { _id: new ObjectId(userId) },
+                    { $set: { companyName: "null", companyLogo: "null" } }
+                );
+
+                res.send(result);
+            } catch (updateErr) {
+                console.error(updateErr);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+
 
 
 
