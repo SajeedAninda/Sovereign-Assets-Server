@@ -321,20 +321,45 @@ async function run() {
         app.get('/allRequests/:companyName', async (req, res) => {
             const companyName = req.params.companyName;
             const { requestorName } = req.query;
-        
+
             const filter = {
                 assetCompany: companyName,
             };
-        
+
             if (requestorName) {
                 const searchRegex = new RegExp(requestorName, 'i');
                 filter.requestorName = searchRegex;
             }
             const result = await requestCollection.find(filter).toArray();
-        
+
             res.send(result);
         });
 
+        // CHANGE STATUS TO APPROVE AFTER REQUEST IS APPROVED AS AN ADMIN 
+        app.patch('/statusApproved/:id', async (req, res) => {
+            const requestId = req.params.id;
+
+            const result = await requestCollection.updateOne(
+                { _id: new ObjectId(requestId) },
+                { $set: { requestStatus: 'Approved' } }
+            );
+
+            res.send(result);
+        });
+
+        // DECREASE PRODUCT COUNT IN ASSET COLLECTION AFTER REQUEST IS APPROVED AS AN ADMIN 
+        app.patch('/changeAssetQuantity/:assetId', async (req, res) => {
+            const assetId = req.params.assetId;
+
+            const result = await assetsCollection.updateOne(
+                { _id: new ObjectId(assetId) },
+                { $inc: { productQuantity: -1 } }
+            );
+
+            res.send(result);
+        });
+
+        
 
 
 
