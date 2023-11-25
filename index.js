@@ -447,6 +447,12 @@ async function run() {
             res.send(result);
         });
 
+        app.get('/getAssetDataPDF/:id', async (req, res) => {
+            const assetId = req.params.id;
+            const result = await assetsCollection.findOne({ _id: new ObjectId(assetId) });
+            res.send(result);
+        });
+
 
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
