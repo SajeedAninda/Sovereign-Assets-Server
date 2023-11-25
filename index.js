@@ -276,6 +276,29 @@ async function run() {
         });
 
 
+        // GET COMPANY ASSET LIST AS AN EMPLOYEE 
+        app.get('/getTeamAssets/:companyName', async (req, res) => {
+            const companyName = req.params.companyName;
+            const { productType, status, productName } = req.query;
+
+            try {
+                const filter = {
+                    assetCompany: companyName,
+                    ...(productType && { productType }),
+                    ...(status && { status }),
+                    ...(productName && { productName: new RegExp(productName, 'i') }),
+                };
+
+                const result = await assetsCollection.find(filter).toArray();
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+
+
 
 
 
