@@ -391,28 +391,35 @@ async function run() {
         app.get('/getRequestedData/:currentUserEmail', async (req, res) => {
             const currentUserEmail = req.params.currentUserEmail;
             const { assetType, requestStatus, assetName } = req.query;
-        
+
             // Build a query object based on the provided parameters
             const query = {
                 requestorEmail: currentUserEmail,
             };
-        
+
             if (assetType) {
                 query.assetType = assetType;
             }
-        
+
             if (requestStatus) {
                 query.requestStatus = requestStatus;
             }
-        
+
             if (assetName) {
                 // Use a case-insensitive regex for partial matching on assetName
                 query.assetName = { $regex: new RegExp(assetName, 'i') };
             }
-        
+
             // Query the requestCollection based on the constructed query
             const result = await requestCollection.find(query).toArray();
-        
+
+            res.send(result);
+        });
+
+        // CANCEL REQUEST DATA AS AN EMPLOYEE 
+        app.delete('/deleteRequest/:id', async (req, res) => {
+            const requestId = req.params.id;
+            const result = await requestCollection.deleteOne({ _id: new ObjectId(requestId) });
             res.send(result);
         });
 
