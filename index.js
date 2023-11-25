@@ -423,7 +423,29 @@ async function run() {
             res.send(result);
         });
 
+        // CHANGE STATUS TO RETURNED AFTER ASSET IS RETURNED BY EMPLOYEE 
+        app.patch('/returnAsset/:id', async (req, res) => {
+            const requestId = req.params.id;
 
+            const result = await requestCollection.updateOne(
+                { _id: new ObjectId(requestId) },
+                { $set: { requestStatus: 'Returned' } }
+            );
+
+            res.send(result);
+        });
+
+        // INCREASE PRODUCT COUNT AFTER ASSET IS RETURNED BY EMPLOYEE 
+        app.patch('/returnAssetCount/:assetId', async (req, res) => {
+            const assetId = req.params.assetId;
+
+            const result = await assetsCollection.updateOne(
+                { _id: new ObjectId(assetId) },
+                { $inc: { productQuantity: 1 } }
+            );
+
+            res.send(result);
+        });
 
 
 
