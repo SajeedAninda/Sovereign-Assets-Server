@@ -245,6 +245,21 @@ async function run() {
         });
 
 
+        // GET TEAM MEMBERS OF THE CURRENT USER ADMIN 
+        app.get('/getUsersByCompanyName/:companyName', async (req, res) => {
+            const companyName = req.params.companyName;
+
+            try {
+                const result = await usersCollection.find({ 'companyName': companyName }).toArray();
+
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+
 
 
 
