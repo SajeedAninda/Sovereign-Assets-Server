@@ -298,6 +298,25 @@ async function run() {
             }
         });
 
+        // POST REQUEST DATA IN REQUEST COLLECTION AS AN USER 
+        app.post('/assetRequest', async (req, res) => {
+            const requestData = req.body;
+            let result = await requestCollection.insertOne(requestData);
+            res.send(result);
+        });
+
+        // CHANGE ASSET STATUS AFTER REQUESTING ASSET AN EMPLOYEE
+        app.patch('/changeAssetStatus/:id', async (req, res) => {
+            const assetId = req.params.id;
+
+            let result = await assetsCollection.updateOne(
+                { _id: new ObjectId(assetId) },
+                { $set: { status: 'Pending' } }
+            );
+
+            res.send(result);
+        });
+
 
 
 
