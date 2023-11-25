@@ -338,14 +338,16 @@ async function run() {
         // CHANGE STATUS TO APPROVE AFTER REQUEST IS APPROVED AS AN ADMIN 
         app.patch('/statusApproved/:id', async (req, res) => {
             const requestId = req.params.id;
+            const currentDate = new Date();
 
             const result = await requestCollection.updateOne(
                 { _id: new ObjectId(requestId) },
-                { $set: { requestStatus: 'Approved' } }
+                { $set: { requestStatus: 'Approved', approvalDate: currentDate } }
             );
 
             res.send(result);
         });
+
 
         // DECREASE PRODUCT COUNT IN ASSET COLLECTION AFTER REQUEST IS APPROVED AS AN ADMIN 
         app.patch('/changeAssetQuantity/:assetId', async (req, res) => {
@@ -353,16 +355,66 @@ async function run() {
 
             const result = await assetsCollection.updateOne(
                 { _id: new ObjectId(assetId) },
-                { $inc: { productQuantity: -1 } }
+                { $inc: { productQuantity: -1 }, $set: { status: 'Approved' } }
             );
 
             res.send(result);
         });
 
+
+        // CHANGE REQUEST STATUS TO REJECTED AFTER REQUEST IS APPROVED AS AN ADMIN 
+        app.patch('/statusRejected/:id', async (req, res) => {
+            const requestId = req.params.id;
+
+            const result = await requestCollection.updateOne(
+                { _id: new ObjectId(requestId) },
+                { $set: { requestStatus: 'Rejected', approvalDate: "null" } }
+            );
+            res.send(result);
+        });
+
+        // CHANGE ASSET STATUS AFTER REQUEST IS APPROVED AS AN ADMIN 
+        app.patch('/changeAssetStatus/:assetId', async (req, res) => {
+            const assetId = req.params.assetId;
+
+            const result = await assetsCollection.updateOne(
+                { _id: new ObjectId(assetId) },
+                { $set: { status: 'Not-Requested' } }
+            );
+
+            res.send(result);
+        });
+
+
+
+        // GET REQUESTED ITEM DATA AS AN EMPLOYEE 
+        app.get('/getRequestedData/:currentUserEmail', async (req, res) => {
+            const currentUserEmail = req.params.currentUserEmail;
+            const { assetType, requestStatus, assetName } = req.query;
         
-
-
-
+            // Build a query object based on the provided parameters
+            const query = {
+                requestorEmail: currentUserEmail,
+            };
+        
+            if (assetType) {
+                query.assetType = assetType;
+            }
+        
+            if (requestStatus) {
+                query.requestStatus = requestStatus;
+            }
+        
+            if (assetName) {
+                // Use a case-insensitive regex for partial matching on assetName
+                query.assetName = { $regex: new RegExp(assetName, 'i') };
+            }
+        
+            // Query the requestCollection based on the constructed query
+            const result = await requestCollection.find(query).toArray();
+        
+            res.send(result);
+        });
 
 
 
