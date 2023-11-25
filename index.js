@@ -42,6 +42,7 @@ async function run() {
         // DATABASE COLLECTIONS 
         let usersCollection = client.db("SovereignAssets").collection("users");
         let assetsCollection = client.db("SovereignAssets").collection("assets");
+        let requestCollection = client.db("SovereignAssets").collection("requests");
 
         // POST ADMIN DATA TO USER COLLECTION 
         app.post("/adminRegister", async (req, res) => {
@@ -296,7 +297,6 @@ async function run() {
                 res.status(500).json({ error: 'Internal Server Error' });
             }
         });
-
 
 
 
