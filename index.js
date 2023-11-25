@@ -191,6 +191,16 @@ async function run() {
             res.send(result);
         });
 
+        // GET ADMIN SPECIFIC PRODUCT COUNT 
+        app.get("/productCount/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = {
+                assetPostedBy: email
+            };
+            const productCount = await assetsCollection.countDocuments(query);
+            res.send({ productCount: productCount });
+        });
+
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
 
@@ -238,6 +248,34 @@ async function run() {
                 console.error(error);
             }
         });
+
+        // UPDATE ADMIN INFO AFTER PACKAGE IS UPGRADED 
+
+        app.patch('/upgradePackage/:email', async (req, res) => {
+            const { email } = req.params;
+            const { increasbleEmployees } = req.body;
+
+            try {
+                const filter = { email: email };
+
+                const existingUser = await usersCollection.findOne(filter);
+                const currentAvailableEmployees = existingUser.availableEmployees || 0;
+
+                const newAvailableEmployees = currentAvailableEmployees + increasbleEmployees;
+
+                const updateResult = await usersCollection.updateOne(filter, {
+                    $set: {
+                        availableEmployees: newAvailableEmployees,
+                    }
+                });
+
+                res.send(updateResult);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
+
 
 
 
