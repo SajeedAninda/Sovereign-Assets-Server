@@ -489,6 +489,18 @@ async function run() {
             res.send(result);
         });
 
+        // UPDATE PROFILE DATA FOR BOTH EMPLOYEE AND ADMIN 
+        app.patch('/updateProfile/:id', async(req, res) => {
+            const id = req.params.id;
+            const updateData = req.body;
+
+            let results =await usersCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { fullName: updateData.fullName, date_of_birth: updateData.dob } }
+            );
+            res.send(results);
+        });
+
 
 
 
