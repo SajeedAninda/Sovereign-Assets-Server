@@ -462,6 +462,34 @@ async function run() {
             res.send(result);
         });
 
+        // GET CUSTOM REQUEST DATA AS AN ADMIN 
+        app.get('/allCustomRequests/:companyName', async (req, res) => {
+            const { companyName } = req.params;
+            const customRequests = await customRequestCollection.find({ requestorTeam: companyName }).toArray();
+            res.json(customRequests);
+        });
+
+        // CHANGE CUSTOM REQUEST STATUS TO APPROVED AS ADMIN 
+        app.patch('/customStatusApproved/:id', async (req, res) => {
+            const requestId = req.params.id;
+            const result = await customRequestCollection.updateOne(
+                { _id: new ObjectId(requestId) },
+                { $set: { status: 'Approved' } }
+            );
+            res.send(result);
+        });
+
+        // CHANGE CUSTOM REQUEST STATUS TO REJECTED AS ADMIN 
+        app.patch('/customStatusRejected/:id', async (req, res) => {
+            const requestId = req.params.id;
+            const result = await customRequestCollection.updateOne(
+                { _id: new ObjectId(requestId) },
+                { $set: { status: 'Rejected' } }
+            );
+            res.send(result);
+        });
+
+
 
 
         // =====================STRIPE PAYMENT RELATED ROUTES =========================
