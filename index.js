@@ -220,23 +220,23 @@ async function run() {
         app.patch('/addToTeam/:id', async (req, res) => {
             const userId = req.params.id;
             const currentUserEmail = req.body.currentUserEmail;
-        
+
             const userToUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
-        
+
             if (!userToUpdate) {
                 return res.status(404).send("User to update not found");
             }
-        
+
             const currentUser = await usersCollection.findOne({ email: currentUserEmail });
-        
+
             if (!currentUser) {
                 return res.status(404).send("Current User Not Found");
             }
-        
+
             if (currentUser.availableEmployees <= 0) {
                 return res.send("Not Enough Limit");
             }
-        
+
             const result = await usersCollection.updateOne(
                 { _id: new ObjectId(userId) },
                 {
@@ -246,17 +246,17 @@ async function run() {
                     },
                 }
             );
-        
+
             const decrementResult = await usersCollection.updateOne(
                 { email: currentUserEmail },
                 {
                     $inc: { availableEmployees: -1 },
                 }
             );
-        
+
             res.send(result);
         });
-        
+
 
 
         // GET TEAM MEMBERS OF THE CURRENT USER ADMIN 
@@ -518,6 +518,29 @@ async function run() {
                 { $set: { fullName: updateData.fullName, date_of_birth: updateData.dob } }
             );
             res.send(results);
+        });
+
+        // GET MY CUSTOM REQUESTS AS AN EMPLOYEE 
+        app.get('/getMyCustomRequests/:email', async (req, res) => {
+            const userEmail = req.params.email;
+            const results = await customRequestCollection.find({ requestorEmail: userEmail }).toArray();
+
+            res.send(results);
+        });
+
+
+        // UPDATE CUSTOM REQUESTS FOR AN EMPLOYEE 
+        app.patch('/updateCustomAsset/:id', async (req, res) => {
+            const customRequestId = req.params.id;
+            const updatedFields = req.body; // Assuming the updated fields are sent in the request body
+
+            // Assuming you're using the MongoDB Node.js driver
+            const result = await customRequestCollection.updateOne(
+                { _id: new ObjectId(customRequestId) },
+                { $set: updatedFields }
+            );
+
+            res.send(result);
         });
 
 
