@@ -126,7 +126,11 @@ async function run() {
 
             // Applying filter based on status
             if (status) {
-                query.status = status;
+                if (status === 'available') {
+                    query.productQuantity = { $gt: 0 }; // Greater than 0
+                } else if (status === 'stockOut') {
+                    query.productQuantity = 0; // Equal to 0
+                }
             }
 
             // SORTING
@@ -134,6 +138,7 @@ async function run() {
             if (sort) {
                 sortOption.productQuantity = sort === 'asc' ? 1 : -1;
             }
+
             // SEARCHING
             if (productName) {
                 query.productName = { $regex: new RegExp(req.query.productName, 'i') };
@@ -151,6 +156,7 @@ async function run() {
                 res.status(500).send("Internal Server Error");
             }
         });
+
 
         // DELETE ASSETS FROM LIST AS AN ADMIN 
         app.delete("/assetList/:id", async (req, res) => {
@@ -287,9 +293,16 @@ async function run() {
                 const filter = {
                     assetCompany: companyName,
                     ...(productType && { productType }),
-                    ...(status && { status }),
                     ...(productName && { productName: new RegExp(productName, 'i') }),
                 };
+
+                if (status) {
+                    if (status === 'available') {
+                        filter.productQuantity = { $gt: 0 }; // Greater than 0
+                    } else if (status === 'stockOut') {
+                        filter.productQuantity = 0; // Equal to 0
+                    }
+                }
 
                 const result = await assetsCollection.find(filter).toArray();
                 res.send(result);
@@ -298,6 +311,7 @@ async function run() {
                 res.status(500).json({ error: 'Internal Server Error' });
             }
         });
+
 
         // POST REQUEST DATA IN REQUEST COLLECTION AS AN USER 
         app.post('/assetRequest', async (req, res) => {
@@ -393,7 +407,6 @@ async function run() {
             const currentUserEmail = req.params.currentUserEmail;
             const { assetType, requestStatus, assetName } = req.query;
 
-            // Build a query object based on the provided parameters
             const query = {
                 requestorEmail: currentUserEmail,
             };
@@ -490,11 +503,11 @@ async function run() {
         });
 
         // UPDATE PROFILE DATA FOR BOTH EMPLOYEE AND ADMIN 
-        app.patch('/updateProfile/:id', async(req, res) => {
+        app.patch('/updateProfile/:id', async (req, res) => {
             const id = req.params.id;
             const updateData = req.body;
 
-            let results =await usersCollection.updateOne(
+            let results = await usersCollection.updateOne(
                 { _id: new ObjectId(id) },
                 { $set: { fullName: updateData.fullName, date_of_birth: updateData.dob } }
             );
