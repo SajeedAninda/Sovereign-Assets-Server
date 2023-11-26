@@ -43,6 +43,7 @@ async function run() {
         let usersCollection = client.db("SovereignAssets").collection("users");
         let assetsCollection = client.db("SovereignAssets").collection("assets");
         let requestCollection = client.db("SovereignAssets").collection("requests");
+        let customRequestCollection = client.db("SovereignAssets").collection("customRequests");
 
         // POST ADMIN DATA TO USER COLLECTION 
         app.post("/adminRegister", async (req, res) => {
@@ -447,9 +448,17 @@ async function run() {
             res.send(result);
         });
 
+        // GET ASSET DATA BY ID FOR PDF 
         app.get('/getAssetDataPDF/:id', async (req, res) => {
             const assetId = req.params.id;
             const result = await assetsCollection.findOne({ _id: new ObjectId(assetId) });
+            res.send(result);
+        });
+
+        // POST CUSTOM REQUESTS DATA AS AN EMPLOYEE 
+        app.post('/customRequest', async (req, res) => {
+            const customRequestData = req.body;
+            let result = await customRequestCollection.insertOne(customRequestData);
             res.send(result);
         });
 
