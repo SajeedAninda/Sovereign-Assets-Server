@@ -565,17 +565,48 @@ async function run() {
         });
 
         // GET PENDING REQUESTS AS AN ADMIN 
-        // Assuming you have an Express app and MongoDB client set up
         app.get('/getPendingReqAdminHome/:email', async (req, res) => {
             const currentUserEmail = req.params.email;
-        
+
             const results = await requestCollection.find({
                 assetPostedBy: currentUserEmail,
                 requestStatus: 'Pending'
             }).toArray();
-        
+
             res.send(results);
         });
+
+        // GET MOST REQUESTED ITEMS AS AN ADMIN 
+        app.get('/mostReqItemsAdminHome/:email', async (req, res) => {
+            const userEmail = req.params.email;
+
+            const mostRequestedItems = await requestCollection.aggregate([
+                { $match: { assetPostedBy: userEmail } },
+                { $group: { _id: "$assetId", count: { $sum: 1 }, asset: { $first: "$$ROOT" } } },
+                { $sort: { count: -1 } },
+                { $limit: 4 }
+            ]).toArray();
+
+            res.send(mostRequestedItems);
+        });
+
+         // GET MOST REQUESTED ITEMS AS AN EMPLOYEE 
+         app.get('/mostReqItemsEmployee/:email', async (req, res) => {
+            const userEmail = req.params.email;
+
+            const mostRequestedItems = await requestCollection.aggregate([
+                { $match: { requestorEmail: userEmail } },
+                { $group: { _id: "$assetId", count: { $sum: 1 }, asset: { $first: "$$ROOT" } } },
+                { $sort: { count: -1 } },
+                { $limit: 4 }
+            ]).toArray();
+
+            res.send(mostRequestedItems);
+        });
+
+
+
+
 
 
 
