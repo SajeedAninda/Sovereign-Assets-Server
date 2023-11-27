@@ -590,8 +590,8 @@ async function run() {
             res.send(mostRequestedItems);
         });
 
-         // GET MOST REQUESTED ITEMS AS AN EMPLOYEE 
-         app.get('/mostReqItemsEmployee/:email', async (req, res) => {
+        // GET MOST REQUESTED ITEMS AS AN EMPLOYEE 
+        app.get('/mostReqItemsEmployee/:email', async (req, res) => {
             const userEmail = req.params.email;
 
             const mostRequestedItems = await requestCollection.aggregate([
@@ -602,6 +602,17 @@ async function run() {
             ]).toArray();
 
             res.send(mostRequestedItems);
+        });
+
+        // GET LIMITED STOCK PRODUCTS AS AN ADMIN
+        app.get('/getLimitedStockItems/:email', async (req, res) => {
+            const userEmail = req.params.email;
+            const result = await assetsCollection.find({
+                assetPostedBy: userEmail,
+                productQuantity: { $lt: 10 }
+            }).sort({ productQuantity: 1 }).toArray();
+
+            res.send(result);
         });
 
 
