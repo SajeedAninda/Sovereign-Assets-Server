@@ -640,7 +640,14 @@ async function run() {
             const companyName = req.params.companyName;
             const result = await usersCollection.find({ companyName, role: 'employee' }).toArray();
             res.send(result);
-          });
+        });
+
+        //   GET ALLOCATED ASSETS AS AN ADMIN 
+        app.get('/getAllocatedAssets/:companyName', async (req, res) => {
+            const companyName = req.params.companyName;
+            const results = await requestCollection.find({ assetCompany: companyName, requestStatus: 'Approved' }).toArray();
+            res.send(results);
+        });
 
 
 
