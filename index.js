@@ -615,6 +615,26 @@ async function run() {
             res.send(result);
         });
 
+        // GET TOTAL PERCENTAGE OF RETURNABLE & NON-RETURNABLE ITEMS AS AN ADMIN 
+        app.get('/getAssetTypePercentage/:email', async (req, res) => {
+            const userEmail = req.params.email;
+            const userRequests = await requestCollection.find({
+                assetPostedBy: userEmail
+            }).toArray();
+            const totalRequests = userRequests.length;
+            const returnableRequests = userRequests.filter(request => request.assetType === 'Returnable').length;
+
+            const nonReturnableRequests = totalRequests - returnableRequests;
+
+            const returnablePercentage = (returnableRequests / totalRequests) * 100;
+            const nonReturnablePercentage = (nonReturnableRequests / totalRequests) * 100;
+
+            res.json({
+                returnablePercentage,
+                nonReturnablePercentage
+            });
+        });
+
 
 
 
