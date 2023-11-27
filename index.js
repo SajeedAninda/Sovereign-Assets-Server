@@ -543,6 +543,29 @@ async function run() {
             res.send(result);
         });
 
+        // GET ALL PENDING REQUESTS AS AN EMPLOYEE 
+        app.get('/getPendingRequests/:email', async (req, res) => {
+            const userEmail = req.params.email;
+
+            const results = await requestCollection.find({
+                requestorEmail: userEmail,
+                requestStatus: 'Pending'
+            }).toArray();
+
+            res.send(results);
+        });
+        
+        // GET ALL THE REQUESTS MADE WITH EMAIL TO CHECK WITH MONTH AS AN EMPLOYEE
+        app.get('/getRequestsByEmail/:email', async (req, res) => {
+            const userEmail = req.params.email;
+            const result = await requestCollection.find({
+                requestorEmail: userEmail,
+            }).toArray();
+            res.send(result);
+        });
+        
+        
+
 
 
 
