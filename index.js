@@ -554,7 +554,7 @@ async function run() {
 
             res.send(results);
         });
-        
+
         // GET ALL THE REQUESTS MADE WITH EMAIL TO CHECK WITH MONTH AS AN EMPLOYEE
         app.get('/getRequestsByEmail/:email', async (req, res) => {
             const userEmail = req.params.email;
@@ -563,8 +563,21 @@ async function run() {
             }).toArray();
             res.send(result);
         });
+
+        // GET PENDING REQUESTS AS AN ADMIN 
+        // Assuming you have an Express app and MongoDB client set up
+        app.get('/getPendingReqAdminHome/:email', async (req, res) => {
+            const currentUserEmail = req.params.email;
         
+            const results = await requestCollection.find({
+                assetPostedBy: currentUserEmail,
+                requestStatus: 'Pending'
+            }).toArray();
         
+            res.send(results);
+        });
+
+
 
 
 
