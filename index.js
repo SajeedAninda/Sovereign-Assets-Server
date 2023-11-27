@@ -635,6 +635,12 @@ async function run() {
             });
         });
 
+        // GET EMPLOYEES TO SHOW IN HOMEPAGE AS AN ADMIN 
+        app.get('/getHomepageEmployee/:companyName', async (req, res) => {
+            const companyName = req.params.companyName;
+            const result = await usersCollection.find({ companyName, role: 'employee' }).toArray();
+            res.send(result);
+          });
 
 
 
