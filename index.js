@@ -3,17 +3,15 @@ const express = require('express')
 let cors = require("cors");
 const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-// console.log(process.env.STRIPE_SECRET_KEY)
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
-const corsOptions = {
-    origin: '*',
-    credentials: true,
-    optionSuccessStatus: 200,
-}
-
-app.use(cors(corsOptions))
-// app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 
 const port = process.env.PORT || 5000
@@ -44,6 +42,76 @@ async function run() {
         let assetsCollection = client.db("SovereignAssets").collection("assets");
         let requestCollection = client.db("SovereignAssets").collection("requests");
         let customRequestCollection = client.db("SovereignAssets").collection("customRequests");
+
+
+        // ====================JWT======================
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            // console.log(user);
+
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '365d'
+            });
+
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: false
+                })
+                .send({ success: true })
+        })
+
+        // DELETE COOKIES AFTER LOGOUT 
+        app.post("/logout", (req, res) => {
+            let user = req.body;
+            res
+                .clearCookie("token", { maxAge: 0 })
+                .send({ message: "success" })
+        })
+
+        // VERIFY TOKENS 
+
+        const verifyToken = async (req, res, next) => {
+            const token = req.cookies?.token;
+            if (!token) {
+                return res.status(401).send({ message: 'Not Authorized' })
+            }
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: 'Unauthorized access' })
+                }
+                req.decoded = decoded;
+                // console.log(req.user.email);
+                next();
+            })
+        }
+
+        // VERIFY ADMIN 
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            // console.log(email);
+            const query = { email: email };
+
+            try {
+                const user = await usersCollection.findOne(query);
+                const isAdmin = user?.role === "admin";
+
+                if (!isAdmin) {
+                    return res.status(401).send({ message: 'Not Authorized' });
+                }
+
+                next();
+            } catch (error) {
+                console.error("Error in verifyAdmin:", error);
+                return res.status(500).send({ message: 'Internal Server Error' });
+            }
+        }
+
+
+
+
+        // =====================================ALL REQUESTS=============================================
+
 
         // POST ADMIN DATA TO USER COLLECTION 
         app.post("/adminRegister", async (req, res) => {
@@ -78,7 +146,7 @@ async function run() {
         });
 
         // GET ADMIN DATA BEFORE PAYMENT 
-        app.get("/paymentData/:email", async (req, res) => {
+        app.get("/paymentData/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = {
                 email: email,
@@ -89,7 +157,7 @@ async function run() {
         });
 
         // GET USER DATA 
-        app.get("/userData/:email", async (req, res) => {
+        app.get("/userData/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = {
                 email: email,
@@ -100,7 +168,7 @@ async function run() {
         });
 
         // ADD ASSETS AS AN ADMIN 
-        app.post("/addAsset", async (req, res) => {
+        app.post("/addAsset", verifyToken, verifyAdmin, async (req, res) => {
             const assets = req.body;
             const result = await assetsCollection.insertOne(assets);
             // console.log(result);
@@ -108,7 +176,7 @@ async function run() {
         });
 
         //   GET ADMIN SPECIFIC ASSET LIST
-        app.get("/assetList/:email", async (req, res) => {
+        app.get("/assetList/:email", verifyToken, verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const productType = req.query.productType;
             const sort = req.query.sort;
@@ -159,7 +227,7 @@ async function run() {
 
 
         // DELETE ASSETS FROM LIST AS AN ADMIN 
-        app.delete("/assetList/:id", async (req, res) => {
+        app.delete("/assetList/:id", verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = {
                 _id: new ObjectId(id),
@@ -169,7 +237,7 @@ async function run() {
         });
 
         //   GET ASSET LIST TO UPDATE AS AN ADMIN
-        app.get("/updateAsset/:id", async (req, res) => {
+        app.get("/updateAsset/:id", verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = {
                 _id: new ObjectId(id),
@@ -179,7 +247,7 @@ async function run() {
         });
 
         //UPDATE ASSET LIST AS AN ADMIN 
-        app.patch("/updateAsset/:id", async (req, res) => {
+        app.patch("/updateAsset/:id", verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const data = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -200,7 +268,7 @@ async function run() {
         });
 
         // GET ADMIN SPECIFIC PRODUCT COUNT 
-        app.get("/productCount/:email", async (req, res) => {
+        app.get("/productCount/:email", verifyToken, verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const query = {
                 assetPostedBy: email
@@ -210,14 +278,14 @@ async function run() {
         });
 
         // GET AVAILABLE EMPLOYEES DATA TO ADD TO TEAM AS AN ADMIN 
-        app.get('/availableEmployees', async (req, res) => {
+        app.get('/availableEmployees', verifyToken, verifyAdmin, async (req, res) => {
             const availableEmployees = await usersCollection.find({ companyName: "null" }).toArray();
             res.json(availableEmployees);
         });
 
 
         // ADD EMPLOYEE TO TEAM BY ADMIN 
-        app.patch('/addToTeam/:id', async (req, res) => {
+        app.patch('/addToTeam/:id', verifyToken, verifyAdmin, async (req, res) => {
             const userId = req.params.id;
             const currentUserEmail = req.body.currentUserEmail;
 
@@ -260,7 +328,7 @@ async function run() {
 
 
         // GET TEAM MEMBERS OF THE CURRENT USER ADMIN 
-        app.get('/getUsersByCompanyName/:companyName', async (req, res) => {
+        app.get('/getUsersByCompanyName/:companyName', verifyToken, verifyAdmin, async (req, res) => {
             const companyName = req.params.companyName;
 
             try {
@@ -274,7 +342,7 @@ async function run() {
         });
 
         // REMOVE MEMBER FROM TEAM AS AN ADMIN 
-        app.patch('/removeFromTeam/:id', async (req, res) => {
+        app.patch('/removeFromTeam/:id', verifyToken, verifyAdmin, async (req, res) => {
             const userId = req.params.id;
             try {
                 const result = await usersCollection.updateOne(
@@ -291,7 +359,7 @@ async function run() {
 
 
         // GET COMPANY ASSET LIST AS AN EMPLOYEE 
-        app.get('/getTeamAssets/:companyName', async (req, res) => {
+        app.get('/getTeamAssets/:companyName', verifyToken, async (req, res) => {
             const companyName = req.params.companyName;
             const { productType, status, productName } = req.query;
 
@@ -319,8 +387,8 @@ async function run() {
         });
 
 
-        // POST REQUEST DATA IN REQUEST COLLECTION AS AN USER 
-        app.post('/assetRequest', async (req, res) => {
+        // POST REQUEST DATA IN REQUEST COLLECTION AS AN EMPLOYEE 
+        app.post('/assetRequest', verifyToken, async (req, res) => {
             const requestData = req.body;
             let result = await requestCollection.insertOne(requestData);
             res.send(result);
@@ -339,7 +407,7 @@ async function run() {
         });
 
         // GET REQUESTED ASSETS DATA AS AN ADMIN 
-        app.get('/allRequests/:companyName', async (req, res) => {
+        app.get('/allRequests/:companyName', verifyToken, verifyAdmin, async (req, res) => {
             const companyName = req.params.companyName;
             const { requestorName } = req.query;
 
@@ -357,7 +425,7 @@ async function run() {
         });
 
         // CHANGE STATUS TO APPROVE AFTER REQUEST IS APPROVED AS AN ADMIN 
-        app.patch('/statusApproved/:id', async (req, res) => {
+        app.patch('/statusApproved/:id', verifyToken, verifyAdmin, async (req, res) => {
             const requestId = req.params.id;
             const currentDate = new Date();
 
@@ -371,7 +439,7 @@ async function run() {
 
 
         // DECREASE PRODUCT COUNT IN ASSET COLLECTION AFTER REQUEST IS APPROVED AS AN ADMIN 
-        app.patch('/changeAssetQuantity/:assetId', async (req, res) => {
+        app.patch('/changeAssetQuantity/:assetId', verifyToken, verifyAdmin, async (req, res) => {
             const assetId = req.params.assetId;
 
             const result = await assetsCollection.updateOne(
@@ -384,7 +452,7 @@ async function run() {
 
 
         // CHANGE REQUEST STATUS TO REJECTED AFTER REQUEST IS APPROVED AS AN ADMIN 
-        app.patch('/statusRejected/:id', async (req, res) => {
+        app.patch('/statusRejected/:id', verifyToken, verifyAdmin, async (req, res) => {
             const requestId = req.params.id;
 
             const result = await requestCollection.updateOne(
@@ -395,7 +463,7 @@ async function run() {
         });
 
         // CHANGE ASSET STATUS AFTER REQUEST IS APPROVED AS AN ADMIN 
-        app.patch('/changeAssetStatus/:assetId', async (req, res) => {
+        app.patch('/changeAssetStatus/:assetId', verifyToken, verifyAdmin, async (req, res) => {
             const assetId = req.params.assetId;
 
             const result = await assetsCollection.updateOne(
@@ -409,7 +477,7 @@ async function run() {
 
 
         // GET REQUESTED ITEM DATA AS AN EMPLOYEE 
-        app.get('/getRequestedData/:currentUserEmail', async (req, res) => {
+        app.get('/getRequestedData/:currentUserEmail', verifyToken, async (req, res) => {
             const currentUserEmail = req.params.currentUserEmail;
             const { assetType, requestStatus, assetName } = req.query;
 
@@ -437,7 +505,7 @@ async function run() {
         });
 
         // CANCEL REQUEST DATA AS AN EMPLOYEE 
-        app.delete('/deleteRequest/:id', async (req, res) => {
+        app.delete('/deleteRequest/:id', verifyToken, async (req, res) => {
             const requestId = req.params.id;
             const result = await requestCollection.deleteOne({ _id: new ObjectId(requestId) });
             res.send(result);
@@ -456,7 +524,7 @@ async function run() {
         });
 
         // INCREASE PRODUCT COUNT AFTER ASSET IS RETURNED BY EMPLOYEE 
-        app.patch('/returnAssetCount/:assetId', async (req, res) => {
+        app.patch('/returnAssetCount/:assetId', verifyToken, async (req, res) => {
             const assetId = req.params.assetId;
 
             const result = await assetsCollection.updateOne(
@@ -468,28 +536,28 @@ async function run() {
         });
 
         // GET ASSET DATA BY ID FOR PDF 
-        app.get('/getAssetDataPDF/:id', async (req, res) => {
+        app.get('/getAssetDataPDF/:id', verifyToken, async (req, res) => {
             const assetId = req.params.id;
             const result = await assetsCollection.findOne({ _id: new ObjectId(assetId) });
             res.send(result);
         });
 
         // POST CUSTOM REQUESTS DATA AS AN EMPLOYEE 
-        app.post('/customRequest', async (req, res) => {
+        app.post('/customRequest', verifyToken, async (req, res) => {
             const customRequestData = req.body;
             let result = await customRequestCollection.insertOne(customRequestData);
             res.send(result);
         });
 
         // GET CUSTOM REQUEST DATA AS AN ADMIN 
-        app.get('/allCustomRequests/:companyName', async (req, res) => {
+        app.get('/allCustomRequests/:companyName', verifyToken, verifyAdmin, async (req, res) => {
             const { companyName } = req.params;
             const customRequests = await customRequestCollection.find({ requestorTeam: companyName }).toArray();
             res.json(customRequests);
         });
 
         // CHANGE CUSTOM REQUEST STATUS TO APPROVED AS ADMIN 
-        app.patch('/customStatusApproved/:id', async (req, res) => {
+        app.patch('/customStatusApproved/:id', verifyToken, verifyAdmin, async (req, res) => {
             const requestId = req.params.id;
             const result = await customRequestCollection.updateOne(
                 { _id: new ObjectId(requestId) },
@@ -499,7 +567,7 @@ async function run() {
         });
 
         // CHANGE CUSTOM REQUEST STATUS TO REJECTED AS ADMIN 
-        app.patch('/customStatusRejected/:id', async (req, res) => {
+        app.patch('/customStatusRejected/:id', verifyToken, verifyAdmin, async (req, res) => {
             const requestId = req.params.id;
             const result = await customRequestCollection.updateOne(
                 { _id: new ObjectId(requestId) },
@@ -509,7 +577,7 @@ async function run() {
         });
 
         // UPDATE PROFILE DATA FOR BOTH EMPLOYEE AND ADMIN 
-        app.patch('/updateProfile/:id', async (req, res) => {
+        app.patch('/updateProfile/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const updateData = req.body;
 
@@ -521,7 +589,7 @@ async function run() {
         });
 
         // GET MY CUSTOM REQUESTS AS AN EMPLOYEE 
-        app.get('/getMyCustomRequests/:email', async (req, res) => {
+        app.get('/getMyCustomRequests/:email', verifyToken, async (req, res) => {
             const userEmail = req.params.email;
             const results = await customRequestCollection.find({ requestorEmail: userEmail }).toArray();
 
@@ -530,7 +598,7 @@ async function run() {
 
 
         // UPDATE CUSTOM REQUESTS FOR AN EMPLOYEE 
-        app.patch('/updateCustomAsset/:id', async (req, res) => {
+        app.patch('/updateCustomAsset/:id', verifyToken, async (req, res) => {
             const customRequestId = req.params.id;
             const updatedFields = req.body; // Assuming the updated fields are sent in the request body
 
@@ -544,7 +612,7 @@ async function run() {
         });
 
         // GET ALL PENDING REQUESTS AS AN EMPLOYEE 
-        app.get('/getPendingRequests/:email', async (req, res) => {
+        app.get('/getPendingRequests/:email', verifyToken, async (req, res) => {
             const userEmail = req.params.email;
 
             const results = await requestCollection.find({
@@ -556,7 +624,7 @@ async function run() {
         });
 
         // GET ALL THE REQUESTS MADE WITH EMAIL TO CHECK WITH MONTH AS AN EMPLOYEE
-        app.get('/getRequestsByEmail/:email', async (req, res) => {
+        app.get('/getRequestsByEmail/:email', verifyToken, async (req, res) => {
             const userEmail = req.params.email;
             const result = await requestCollection.find({
                 requestorEmail: userEmail,
@@ -565,7 +633,7 @@ async function run() {
         });
 
         // GET PENDING REQUESTS AS AN ADMIN 
-        app.get('/getPendingReqAdminHome/:email', async (req, res) => {
+        app.get('/getPendingReqAdminHome/:email', verifyToken, verifyAdmin, async (req, res) => {
             const currentUserEmail = req.params.email;
 
             const results = await requestCollection.find({
@@ -577,7 +645,7 @@ async function run() {
         });
 
         // GET MOST REQUESTED ITEMS AS AN ADMIN 
-        app.get('/mostReqItemsAdminHome/:email', async (req, res) => {
+        app.get('/mostReqItemsAdminHome/:email', verifyToken, verifyAdmin, async (req, res) => {
             const userEmail = req.params.email;
 
             const mostRequestedItems = await requestCollection.aggregate([
@@ -591,7 +659,7 @@ async function run() {
         });
 
         // GET MOST REQUESTED ITEMS AS AN EMPLOYEE 
-        app.get('/mostReqItemsEmployee/:email', async (req, res) => {
+        app.get('/mostReqItemsEmployee/:email', verifyToken, async (req, res) => {
             const userEmail = req.params.email;
 
             const mostRequestedItems = await requestCollection.aggregate([
@@ -605,7 +673,7 @@ async function run() {
         });
 
         // GET LIMITED STOCK PRODUCTS AS AN ADMIN
-        app.get('/getLimitedStockItems/:email', async (req, res) => {
+        app.get('/getLimitedStockItems/:email', verifyToken, verifyAdmin, async (req, res) => {
             const userEmail = req.params.email;
             const result = await assetsCollection.find({
                 assetPostedBy: userEmail,
@@ -616,7 +684,7 @@ async function run() {
         });
 
         // GET TOTAL PERCENTAGE OF RETURNABLE & NON-RETURNABLE ITEMS AS AN ADMIN 
-        app.get('/getAssetTypePercentage/:email', async (req, res) => {
+        app.get('/getAssetTypePercentage/:email', verifyToken, verifyAdmin, async (req, res) => {
             const userEmail = req.params.email;
             const userRequests = await requestCollection.find({
                 assetPostedBy: userEmail
@@ -636,18 +704,20 @@ async function run() {
         });
 
         // GET EMPLOYEES TO SHOW IN HOMEPAGE AS AN ADMIN 
-        app.get('/getHomepageEmployee/:companyName', async (req, res) => {
+        app.get('/getHomepageEmployee/:companyName', verifyToken, verifyAdmin, async (req, res) => {
             const companyName = req.params.companyName;
             const result = await usersCollection.find({ companyName, role: 'employee' }).toArray();
             res.send(result);
         });
 
         //   GET ALLOCATED ASSETS AS AN ADMIN 
-        app.get('/getAllocatedAssets/:companyName', async (req, res) => {
+        app.get('/getAllocatedAssets/:companyName', verifyToken, verifyAdmin, async (req, res) => {
             const companyName = req.params.companyName;
             const results = await requestCollection.find({ assetCompany: companyName, requestStatus: 'Approved' }).toArray();
             res.send(results);
         });
+
+
 
 
 
