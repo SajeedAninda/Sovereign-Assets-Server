@@ -328,7 +328,7 @@ async function run() {
 
 
         // GET TEAM MEMBERS OF THE CURRENT USER ADMIN 
-        app.get('/getUsersByCompanyName/:companyName', verifyToken, verifyAdmin, async (req, res) => {
+        app.get('/getUsersByCompanyName/:companyName', verifyToken, async (req, res) => {
             const companyName = req.params.companyName;
 
             try {
@@ -512,7 +512,7 @@ async function run() {
         });
 
         // CHANGE STATUS TO RETURNED AFTER ASSET IS RETURNED BY EMPLOYEE 
-        app.patch('/returnAsset/:id', async (req, res) => {
+        app.patch('/returnAsset/:id', verifyToken, async (req, res) => {
             const requestId = req.params.id;
 
             const result = await requestCollection.updateOne(
@@ -536,7 +536,7 @@ async function run() {
         });
 
         // GET ASSET DATA BY ID FOR PDF 
-        app.get('/getAssetDataPDF/:id', verifyToken, async (req, res) => {
+        app.get('/getAssetDataPDF/:id', async (req, res) => {
             const assetId = req.params.id;
             const result = await assetsCollection.findOne({ _id: new ObjectId(assetId) });
             res.send(result);
