@@ -157,7 +157,7 @@ async function run() {
         });
 
         // GET USER DATA 
-        app.get("/userData/:email", verifyToken, async (req, res) => {
+        app.get("/userData/:email", async (req, res) => {
             const email = req.params.email;
             const query = {
                 email: email,
