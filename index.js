@@ -5,13 +5,14 @@ const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://sovereign-assets-sajeed.netlify.app/'],
+    origin: ['https://sovereign-assets-sajeed.netlify.app', 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true
 }));
+
 app.use(express.json());
-app.use(cookieParser());
 
 
 const port = process.env.PORT || 5000
@@ -67,7 +68,7 @@ async function run() {
             let user = req.body;
             res
                 .clearCookie("token", {
-                    maxAge: 0, 
+                    maxAge: 0,
                     secure: true,
                     sameSite: 'none',
                 })
