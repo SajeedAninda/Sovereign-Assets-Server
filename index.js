@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://sovereign-assets-sajeed.netlify.app/'],
     credentials: true
 }));
 app.use(express.json());
@@ -56,7 +56,8 @@ async function run() {
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false
+                    secure: true,
+                    sameSite: 'none',
                 })
                 .send({ success: true })
         })
@@ -65,7 +66,11 @@ async function run() {
         app.post("/logout", (req, res) => {
             let user = req.body;
             res
-                .clearCookie("token", { maxAge: 0 })
+                .clearCookie("token", {
+                    maxAge: 0, 
+                    secure: true,
+                    sameSite: 'none',
+                })
                 .send({ message: "success" })
         })
 
